@@ -10,103 +10,101 @@ BUTTONS = [
 ]
 
 
+def evaluate_expression(expression):
+    sanitized = expression.replace("×", "*").replace("÷", "/")
+    if not sanitized or not all(ch in "0123456789.+-*/()% " for ch in sanitized):
+        return "Error"
+
+    try:
+        result = eval(sanitized)
+        return result
+    except Exception:
+        return "Error"
+
+
 class Calculator(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Calculator")
-        self.geometry("360x520")
+        self.title("Nova Calculator")
+        self.geometry("372x560")
         self.resizable(False, False)
-        self['bg'] = '#f5f7fb'
+        self.configure(bg="#07111f")
 
-        self.value = tk.StringVar(value='0')
+        self.value = tk.StringVar(value="0")
         self._create_widgets()
 
     def _create_widgets(self):
         display = ttk.Entry(
             self,
             textvariable=self.value,
-            justify='right',
-            font=('Inter', 28),
-            state='readonly',
-            width=14,
+            justify="right",
+            font=("Inter", 28, "bold"),
+            state="readonly",
+            width=16,
         )
-        display.grid(row=0, column=0, columnspan=4, padx=16, pady=(16, 8), sticky='nsew')
+        display.grid(row=0, column=0, columnspan=4, padx=18, pady=(18, 12), sticky="nsew")
 
         style = ttk.Style(self)
-        style.configure('TButton', padding=16, font=('Inter', 16))
+        style.theme_use("clam")
+        style.configure("TEntry", fieldbackground="#0f172a", foreground="#f8fafc", borderwidth=0)
+        style.configure("TButton", padding=16, font=("Inter", 16), borderwidth=0)
 
         for row_index, row in enumerate(BUTTONS, start=1):
             for col_index, label in enumerate(row):
                 if not label:
                     continue
                 button = ttk.Button(self, text=label, command=lambda l=label: self.on_button_press(l))
-                button.grid(row=row_index, column=col_index, padx=8, pady=8, sticky='nsew')
+                button.grid(row=row_index, column=col_index, padx=8, pady=8, sticky="nsew")
 
-                if label in {'+', '-', '×', '÷', '='}:
-                    button.configure(style='Operator.TButton')
-                elif label in {'C', '⌫', '%'}:
-                    button.configure(style='Function.TButton')
+                if label in {"+", "-", "×", "÷", "="}:
+                    button.configure(style="Operator.TButton")
+                elif label in {"C", "⌫", "%"}:
+                    button.configure(style="Function.TButton")
 
-        style.configure('Operator.TButton', background='#4338ca', foreground='white')
-        style.map('Operator.TButton', background=[('active', '#312e81')])
-        style.configure('Function.TButton', background='#e2e8f0', foreground='#1e293b')
-        style.map('Function.TButton', background=[('active', '#cbd5e1')])
+        style.configure("Operator.TButton", background="#6366f1", foreground="white")
+        style.map("Operator.TButton", background=[("active", "#4f46e5")])
+        style.configure("Function.TButton", background="#334155", foreground="#f8fafc")
+        style.map("Function.TButton", background=[("active", "#475569")])
 
-        for i in range(5):
+        for i in range(1, 6):
             self.grid_rowconfigure(i, weight=1)
         for i in range(4):
             self.grid_columnconfigure(i, weight=1)
 
     def on_button_press(self, label):
-        if label == 'C':
-            self.value.set('0')
+        if label == "C":
+            self.value.set("0")
             return
-        if label == '⌫':
+        if label == "⌫":
             current = self.value.get()
-            self.value.set(current[:-1] if len(current) > 1 else '0')
+            self.value.set(current[:-1] if len(current) > 1 else "0")
             return
-        if label == '%':
+        if label == "%":
             self.handle_percent()
             return
-        if label == '=':
+        if label == "=":
             self.calculate()
             return
         self.append_value(label)
 
     def append_value(self, label):
         current = self.value.get()
-        if current == '0' and label != '.':
+        if current == "0" and label != ".":
             self.value.set(label)
         else:
             self.value.set(current + label)
 
     def handle_percent(self):
-        expression = self._sanitize_expression(self.value.get())
-        try:
-            result = eval(expression)
+        result = evaluate_expression(self.value.get())
+        if result == "Error":
+            self.value.set("Error")
+        else:
             self.value.set(str(result / 100))
-        except Exception:
-            self.value.set('Error')
 
     def calculate(self):
-        expression = self._sanitize_expression(self.value.get())
-        if not self._is_valid_expression(expression):
-            self.value.set('Error')
-            return
-        try:
-            result = eval(expression)
-            self.value.set(str(result))
-        except Exception:
-            self.value.set('Error')
-
-    @staticmethod
-    def _sanitize_expression(expression):
-        return expression.replace('×', '*').replace('÷', '/')
-
-    @staticmethod
-    def _is_valid_expression(expression):
-        return bool(expression) and all(ch in '0123456789.+-*/()% ' for ch in expression)
+        result = evaluate_expression(self.value.get())
+        self.value.set(str(result) if result != "Error" else "Error")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     Calculator().mainloop()
