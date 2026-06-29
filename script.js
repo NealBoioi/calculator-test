@@ -1,75 +1,187 @@
-const display = document.getElementById('display');
-const buttons = document.querySelectorAll('.button');
+(function (root, factory) {
+  const api = factory();
 
-function updateDisplay(value) {
-  if (display.value === '0' && value !== '.') {
-    display.value = value;
-  } else {
-    display.value += value;
-  }
-}
-
-function sanitizeExpression(expression) {
-  return expression.replace(/×/g, '*').replace(/÷/g, '/');
-}
-
-function calculate() {
-  const expression = sanitizeExpression(display.value);
-  if (!/^[0-9.+\-*/()%\s]+$/.test(expression)) {
-    display.value = 'Error';
-    return;
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
   }
 
-  try {
-    const result = Function(`"use strict"; return (${expression})`)();
-    display.value = String(result);
-  } catch {
-    display.value = 'Error';
+  root.CalculatorApp = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  function sanitizeExpression(expression) {
+    return expression.replace(/×/g, '*').replace(/÷/g, '/');
   }
-}
 
-function clearDisplay() {
-  display.value = '0';
-}
+  function formatResult(value) {
+    if (!Number.isFinite(value)) {
+      return 'Error';
+    }
 
-function deleteLast() {
-  display.value = display.value.length > 1 ? display.value.slice(0, -1) : '0';
-}
-
-function percent() {
-  try {
-    const value = parseFloat(display.value.replace(/×/g, '*').replace(/÷/g, '/'));
-    display.value = String(value / 100);
-  } catch {
-    display.value = 'Error';
+    const rounded = Math.round(value * 1e12) / 1e12;
+    return String(rounded);
   }
-}
 
-buttons.forEach((button) => {
-  button.addEventListener('click', () => {
-    const value = button.dataset.value;
-    const action = button.dataset.action;
+  function evaluateExpression(expression) {
+    const sanitized = sanitizeExpression(expression);
 
-    if (action === 'clear') {
-      clearDisplay();
-      return;
+    if (!/^[0-9.+\-*/()%\s]+$/.test(sanitized)) {
+      return 'Error';
     }
 
-    if (action === 'delete') {
-      deleteLast();
-      return;
+    try {
+      const result = Function('"use strict"; return (' + sanitized + ')')();
+      return Number.isFinite(result) ? result : 'Error';
+    } catch {
+      return 'Error';
+    }
+  }
+
+  function createCalculator(rootElement = document) {
+    const display = rootElement.getElementById('display');
+    const buttons = rootElement.querySelectorAll('.button');
+
+    let expression = '0';
+    let lastAction = 'clear';
+
+    function updateDisplay(value) {
+      expression = value;
+      display.value = value;
     }
 
-    if (action === 'percent') {
-      percent();
-      return;
+    function appendDigit(value) {
+      if (display.value === 'Error') {
+        updateDisplay(value === '.' ? '0.' : value);
+        lastAction = 'number';
+        return;
+      }
+
+      if (lastAction === 'equals') {
+        updateDisplay(value === '.' ? '0.' : value);
+        lastAction = 'number';
+        return;
+      }
+
+      if (expression === '0' && value !== '.') {
+        updateDisplay(value);
+      } else if (expression === '0' && value === '.') {
+        updateDisplay('0.');
+      } else if (value === '.' && expression.slice(-1) === '.') {
+        return;
+      } else {
+        updateDisplay(expression + value);
+      }
+
+      lastAction = 'number';
     }
 
-    if (action === 'equals') {
-      calculate();
-      return;
+    function appendOperator(operator) {
+      if (display.value === 'Error') {
+        updateDisplay('0');
+      }
+
+      if (expression === '0' && operator === '-') {
+        updateDisplay('-');
+        lastAction = 'operator';
+        return;
+      }
+
+      if (lastAction === 'operator') {
+        updateDisplay(expression.slice(0, -1) + operator);
+      } else {
+        updateDisplay(expression + operator);
+      }
+
+      lastAction = 'operator';
     }
 
-    updateDisplay(value);
-  });
+    function clearDisplay() {
+      updateDisplay('0');
+      lastAction = 'clear';
+    }
+
+    function deleteLast() {
+      if (display.value === 'Error') {
+        clearDisplay();
+        return;
+      }
+
+      const next = expression.length > 1 ? expression.slice(0, -1) : '0';
+      updateDisplay(next);
+      lastAction = 'delete';
+    }
+
+    function percent() {
+      if (display.value === 'Error') {
+        clearDisplay();
+        return;
+      }
+
+      const numericValue = Number.parseFloat(expression);
+      if (Number.isNaN(numericValue)) {
+        updateDisplay('Error');
+        return;
+      }
+
+      updateDisplay(String(numericValue / 100));
+      lastAction = 'percent';
+    }
+
+    function calculate() {
+      const result = evaluateExpression(expression);
+      updateDisplay(typeof result === 'number' ? formatResult(result) : result);
+      lastAction = 'equals';
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const value = button.dataset.value;
+        const action = button.dataset.action;
+
+        if (action === 'clear') {
+          clearDisplay();
+          return;
+        }
+
+        if (action === 'delete') {
+          deleteLast();
+          return;
+        }
+
+        if (action === 'percent') {
+          percent();
+          return;
+        }
+
+        if (action === 'equals') {
+          calculate();
+          return;
+        }
+
+        if (value && /[0-9.]/.test(value)) {
+          appendDigit(value);
+          return;
+        }
+
+        if (value && /[+\-×÷]/.test(value)) {
+          appendOperator(value);
+        }
+      });
+    });
+
+    return {
+      evaluateExpression,
+      clearDisplay,
+      deleteLast,
+      percent,
+      calculate,
+    };
+  }
+
+  return {
+    evaluateExpression,
+    createCalculator,
+  };
 });
+
+if (typeof document !== 'undefined') {
+  CalculatorApp.createCalculator();
+}

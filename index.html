@@ -3,14 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Calculator</title>
+    <title>Nova Calculator</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="calculator-app">
-      <h1>Calculator</h1>
-      <div class="calculator">
-        <input id="display" type="text" value="0" readonly aria-label="Calculator display" />
+      <section class="calculator-card" aria-label="Modern calculator">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Precision</p>
+            <h1>Nova Calculator</h1>
+          </div>
+          <div class="status-pill">Ready</div>
+        </div>
+
+        <div class="display-shell">
+          <input id="display" type="text" value="0" readonly aria-label="Calculator display" />
+        </div>
+
         <div class="button-grid">
           <button class="button function" data-action="clear">C</button>
           <button class="button function" data-action="delete">⌫</button>
@@ -25,18 +35,18 @@
           <button class="button" data-value="4">4</button>
           <button class="button" data-value="5">5</button>
           <button class="button" data-value="6">6</button>
-          <button class="button operator" data-value="-">-</button>
+          <button class="button operator" data-value="-">−</button>
 
           <button class="button" data-value="1">1</button>
           <button class="button" data-value="2">2</button>
           <button class="button" data-value="3">3</button>
           <button class="button operator" data-value="+">+</button>
 
-          <button class="button" data-value="0">0</button>
+          <button class="button span-2" data-value="0">0</button>
           <button class="button" data-value=".">.</button>
           <button class="button equals" data-action="equals">=</button>
         </div>
-      </div>
+      </section>
     </main>
     <script src="script.js"></script>
   </body>
